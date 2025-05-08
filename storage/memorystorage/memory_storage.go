@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"io/ioutil"
 	"sync"
 
 	"github.com/sgao640/simple-contents/storage"
@@ -34,7 +33,7 @@ func (s *MemoryStorage) Upload(ctx context.Context, key string, data io.Reader, 
 	defer s.mu.Unlock()
 
 	// Read all data from the reader
-	content, err := ioutil.ReadAll(data)
+	content, err := io.ReadAll(data)
 	if err != nil {
 		return "", err
 	}
