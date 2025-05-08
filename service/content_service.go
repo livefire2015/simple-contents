@@ -3,16 +3,14 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
-	"net/http"
 	"path"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/torpago/simple-content-service/repository"
-	"github.com/torpago/simple-content-service/storage"
-	"github.com/torpago/simple-contents/model"
+	"github.com/livefire2015/simple-contents/model"
+	"github.com/livefire2015/simple-contents/repository"
+	"github.com/livefire2015/simple-contents/storage"
 )
 
 var (
@@ -50,7 +48,7 @@ type CreateContentInput struct {
 
 // CreateContent creates a new content item
 func (s *ContentService) CreateContent(ctx context.Context, input CreateContentInput) (*model.Content, error) {
-	if input.Name == "" || input.ContentType == "" || input.Data == nil || input.Size <= 0 {
+	if input.FileName == "" || input.MIMEType == "" || input.FileSize <= 0 {
 		return nil, ErrInvalidInput
 	}
 
@@ -58,10 +56,10 @@ func (s *ContentService) CreateContent(ctx context.Context, input CreateContentI
 	contentID := uuid.New()
 
 	// Create a storage key based on content ID and name
-	storageKey := path.Join(contentID.String(), input.Name)
+	storageKey := path.Join(contentID.String(), input.FileName)
 
 	// Store the content data
-	storagePath, err := s.storage.Store(ctx, storageKey, input.Data, input.Size, input.ContentType)
+	storagePath, err := s.storage.Upload(ctx, storageKey, nil, input.FileSize, input.MIMEType)
 	if err != nil {
 		return nil, err
 	}
@@ -69,15 +67,14 @@ func (s *ContentService) CreateContent(ctx context.Context, input CreateContentI
 	// Create the content record
 	content := &model.Content{
 		ID:          contentID,
-		Name:        input.Name,
-		Description: input.Description,
-		ContentType: input.ContentType,
-		Size:        input.Size,
-		Path:        storagePath,
+		FileName:    input.FileName,
+		MIMEType:    input.MIMEType,
+		FileSize:    input.FileSize,
+		StoragePath: storagePath,
 		Metadata:    input.Metadata,
 	}
 
-	if err := s.repo.Create(ctx, content); err != nil {
+	if err := s.repo.CreateContent(ctx, content); err != nil {
 		// Clean up storage if repository creation fails
 		_ = s.storage.Delete(ctx, storagePath)
 		return nil, err
@@ -88,7 +85,7 @@ func (s *ContentService) CreateContent(ctx context.Context, input CreateContentI
 
 // GetContent retrieves a content item by ID
 func (s *ContentService) GetContent(ctx context.Context, id uuid.UUID) (*model.Content, error) {
-	content, err := s.repo.GetByID(ctx, id)
+	content, err := s.repo.GetContentByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrContentNotFound) {
 			return nil, ErrContentNotFound
@@ -101,7 +98,7 @@ func (s *ContentService) GetContent(ctx context.Context, id uuid.UUID) (*model.C
 
 // GetContentData retrieves the data for a content item
 func (s *ContentService) GetContentData(ctx context.Context, id uuid.UUID) (io.ReadCloser, *model.Content, error) {
-	content, err := s.repo.GetByID(ctx, id)
+	content, err := s.repo.GetContentByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrContentNotFound) {
 			return nil, nil, ErrContentNotFound
@@ -109,7 +106,7 @@ func (s *ContentService) GetContentData(ctx context.Context, id uuid.UUID) (io.R
 		return nil, nil, err
 	}
 
-	data, err := s.storage.Retrieve(ctx, content.Path)
+	data, err := s.storage.Download(ctx, content.StoragePath)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -119,10 +116,9 @@ func (s *ContentService) GetContentData(ctx context.Context, id uuid.UUID) (io.R
 
 // UpdateContentInput represents input for updating content
 type UpdateContentInput struct {
-	ID          uuid.UUID
-	Name        string
-	Description string
-	Metadata    model.Metadata
+	ID       uuid.UUID
+	FileName string
+	Metadata model.Metadata
 }
 
 // UpdateContent updates a content item
@@ -131,7 +127,7 @@ func (s *ContentService) UpdateContent(ctx context.Context, input UpdateContentI
 		return nil, ErrInvalidInput
 	}
 
-	content, err := s.repo.GetByID(ctx, input.ID)
+	content, err := s.repo.GetContentByID(ctx, input.ID)
 	if err != nil {
 		if errors.Is(err, repository.ErrContentNotFound) {
 			return nil, ErrContentNotFound
@@ -140,17 +136,14 @@ func (s *ContentService) UpdateContent(ctx context.Context, input UpdateContentI
 	}
 
 	// Update fields if provided
-	if input.Name != "" {
-		content.Name = input.Name
-	}
-	if input.Description != "" {
-		content.Description = input.Description
+	if input.FileName != "" {
+		content.FileName = input.FileName
 	}
 	if input.Metadata != nil {
 		content.Metadata = input.Metadata
 	}
 
-	if err := s.repo.Update(ctx, content); err != nil {
+	if err := s.repo.UpdateContent(ctx, content); err != nil {
 		return nil, err
 	}
 
@@ -159,7 +152,7 @@ func (s *ContentService) UpdateContent(ctx context.Context, input UpdateContentI
 
 // DeleteContent deletes a content item
 func (s *ContentService) DeleteContent(ctx context.Context, id uuid.UUID) error {
-	content, err := s.repo.GetByID(ctx, id)
+	content, err := s.repo.GetContentByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrContentNotFound) {
 			return ErrContentNotFound
@@ -168,21 +161,21 @@ func (s *ContentService) DeleteContent(ctx context.Context, id uuid.UUID) error 
 	}
 
 	// Delete from repository first
-	if err := s.repo.Delete(ctx, id); err != nil {
+	if err := s.repo.DeleteContent(ctx, id); err != nil {
 		return err
 	}
 
 	// Then delete from storage
 	// Note: We don't return storage deletion errors to the caller
 	// as the content is already marked as deleted in the repository
-	_ = s.storage.Delete(ctx, content.Path)
+	_ = s.storage.Delete(ctx, content.StoragePath)
 
 	return nil
 }
 
 // ListContentInput represents input for listing content
 type ListContentInput struct {
-	ContentType string
+	MIMEType    string
 	MinSize     *int64
 	MaxSize     *int64
 	CreatedFrom *time.Time
@@ -216,7 +209,7 @@ func (s *ContentService) ListContent(ctx context.Context, input ListContentInput
 
 	// Create filter from input
 	filter := model.ContentFilter{
-		ContentType: input.ContentType,
+		MIMEType:    input.MIMEType,
 		MinSize:     input.MinSize,
 		MaxSize:     input.MaxSize,
 		CreatedFrom: input.CreatedFrom,
@@ -225,7 +218,7 @@ func (s *ContentService) ListContent(ctx context.Context, input ListContentInput
 	}
 
 	// Get content items
-	items, totalCount, err := s.repo.List(ctx, filter, offset, input.PageSize)
+	items, totalCount, err := s.repo.ListContent(ctx, filter, offset, input.PageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -247,7 +240,7 @@ func (s *ContentService) ListContent(ctx context.Context, input ListContentInput
 
 // GetContentURL generates a URL for accessing content
 func (s *ContentService) GetContentURL(ctx context.Context, id uuid.UUID, expiry time.Duration) (string, error) {
-	content, err := s.repo.GetByID(ctx, id)
+	content, err := s.repo.GetContentByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrContentNotFound) {
 			return "", ErrContentNotFound
@@ -255,7 +248,7 @@ func (s *ContentService) GetContentURL(ctx context.Context, id uuid.UUID, expiry
 		return "", err
 	}
 
-	return s.storage.GetURL(ctx, content.Path, expiry)
+	return s.storage.GetPresignedDownloadURL(ctx, content.StoragePath, storage.PresignedURLOptions{Expiry: expiry})
 }
 
 // AssociateContentInput defines the input for associating content with an entity
@@ -267,138 +260,138 @@ type AssociateContentInput struct {
 	AssociatedBy        string                 `json:"associated_by"` // User/service performing the association
 }
 
-// AssociateContent links an existing content item to an entity.
-func (s *ContentService) AssociateContent(ctx context.Context, input AssociateContentInput) (*model.ContentEntityAssociation, error) {
-	// 1. Validate that the content item exists
-	_, err := s.repo.GetContentByID(ctx, input.ContentID)
-	if err != nil {
-		return nil, fmt.Errorf("content with ID %s not found: %w", input.ContentID, err)
-	}
+// // AssociateContent links an existing content item to an entity.
+// func (s *ContentService) AssociateContent(ctx context.Context, input AssociateContentInput) (*model.ContentEntityAssociation, error) {
+// 	// 1. Validate that the content item exists
+// 	_, err := s.repo.GetContentByID(ctx, input.ContentID)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("content with ID %s not found: %w", input.ContentID, err)
+// 	}
 
-	// 2. (Optional) Validate that the associating entity exists by calling another service or based on known types.
-	// This depends on your system's architecture.
+// 	// 2. (Optional) Validate that the associating entity exists by calling another service or based on known types.
+// 	// This depends on your system's architecture.
 
-	// 3. Check for existing association if you don't want duplicates (based on unique constraint)
-	existingAssoc, err := s.repo.GetAssociationByLink(ctx, input.ContentID, input.EntityType, input.EntityID)
-	if err != nil && err != repository.ErrNotFound { // Assuming ErrNotFound is a distinct error type
-		return nil, fmt.Errorf("error checking for existing association: %w", err)
-	}
-	if existingAssoc != nil {
-		// You might want to update the existing one or return an error, based on policy
-		return nil, fmt.Errorf("content %s is already associated with entity %s/%s (association ID: %s)",
-			input.ContentID, input.EntityType, input.EntityID, existingAssoc.ID)
-	}
+// 	// 3. Check for existing association if you don't want duplicates (based on unique constraint)
+// 	existingAssoc, err := s.repo.GetAssociationByLink(ctx, input.ContentID, input.EntityType, input.EntityID)
+// 	if err != nil && err != repository.ErrContentNotFound { // Assuming ErrNotFound is a distinct error type
+// 		return nil, fmt.Errorf("error checking for existing association: %w", err)
+// 	}
+// 	if existingAssoc != nil {
+// 		// You might want to update the existing one or return an error, based on policy
+// 		return nil, fmt.Errorf("content %s is already associated with entity %s/%s (association ID: %s)",
+// 			input.ContentID, input.EntityType, input.EntityID, existingAssoc.ID)
+// 	}
 
-	association := &model.ContentEntityAssociation{
-		ID:                  uuid.NewString(), // Generate new ID for the association
-		ContentID:           input.ContentID,
-		EntityType:          input.EntityType,
-		EntityID:            input.EntityID,
-		AssociationMetadata: input.AssociationMetadata,
-		CreatedBy:           input.AssociatedBy,
-		CreatedAt:           time.Now().UTC(),
-		UpdatedAt:           time.Now().UTC(),
-	}
+// 	association := &model.ContentEntityAssociation{
+// 		ID:                  uuid.NewString(), // Generate new ID for the association
+// 		ContentID:           input.ContentID,
+// 		EntityType:          input.EntityType,
+// 		EntityID:            input.EntityID,
+// 		AssociationMetadata: input.AssociationMetadata,
+// 		CreatedBy:           input.AssociatedBy,
+// 		CreatedAt:           time.Now().UTC(),
+// 		UpdatedAt:           time.Now().UTC(),
+// 	}
 
-	if err := s.repo.CreateAssociation(ctx, association); err != nil {
-		return nil, fmt.Errorf("failed to create association: %w", err)
-	}
+// 	if err := s.repo.CreateAssociation(ctx, association); err != nil {
+// 		return nil, fmt.Errorf("failed to create association: %w", err)
+// 	}
 
-	return association, nil
-}
-
-// GetContentForEntity retrieves content items linked to a specific entity.
-func (s *ContentService) GetContentForEntity(ctx context.Context, entityType string, entityID string, options repository.ListOptions) ([]*model.Content, int64, error) {
-	if entityType == "" || entityID == "" {
-		return nil, 0, fmt.Errorf("entityType and entityID are required")
-	}
-	// This service method now calls the repository method that handles the join
-	return s.repo.ListContentByEntity(ctx, entityType, entityID, options)
-}
-
-// Inside your service.ContentService
-
-// Assume s.storage has a method StatObject(ctx, storagePath) (string, error) that returns ObjectMetadata
-// type ObjectMetadata struct {
-//    Size int64
-//    ContentType string // Could also get the ContentType set by the storage service
-//    // Other relevant metadata
+// 	return association, nil
 // }
 
-func (s *ContentService) MarkContentAsUploaded(ctx context.Context, contentID string, storagePath string) (*model.Content, error) {
-	content, err := s.repo.GetByID(ctx, contentID)
-	if err != nil {
-		return nil, fmt.Errorf("content with ID %s not found: %w", contentID, err)
-	}
+// // GetContentForEntity retrieves content items linked to a specific entity.
+// func (s *ContentService) GetContentForEntity(ctx context.Context, entityType string, entityID string, options repository.ListOptions) ([]*model.Content, int64, error) {
+// 	if entityType == "" || entityID == "" {
+// 		return nil, 0, fmt.Errorf("entityType and entityID are required")
+// 	}
+// 	// This service method now calls the repository method that handles the join
+// 	return s.repo.ListContentByEntity(ctx, entityType, entityID, options)
+// }
 
-	if content.Status != model.StatusCreated && content.Status != model.StatusError {
-		return nil, fmt.Errorf("cannot mark content as uploaded, current status: %s", content.Status)
-	}
+// // Inside your service.ContentService
 
-	// At this point, the file is already in the storage (e.g., S3, Minio)
-	// We need to fetch the first 512 bytes from storage to verify MIME type.
+// // Assume s.storage has a method StatObject(ctx, storagePath) (string, error) that returns ObjectMetadata
+// // type ObjectMetadata struct {
+// //    Size int64
+// //    ContentType string // Could also get the ContentType set by the storage service
+// //    // Other relevant metadata
+// // }
 
-	var detectedMIMEType string
-	var actualFileSize int64 // Get this from storage if possible
+// func (s *ContentService) MarkContentAsUploaded(ctx context.Context, contentID string, storagePath string) (*model.Content, error) {
+// 	content, err := s.repo.GetContentByID(ctx, uuid.MustParse(contentID))
+// 	if err != nil {
+// 		return nil, fmt.Errorf("content with ID %s not found: %w", contentID, err)
+// 	}
 
-	// --- Hypothetical steps to get header from storage ---
-	// This part is pseudo-code as it depends on your StorageService interface and implementation
-	// You might need to add a method like `GetFirstNBytes(path, n)` to your StorageService
-	// or use the Download method with a ranged request if supported.
+// 	if content.Status != model.StatusCreated && content.Status != model.StatusError {
+// 		return nil, fmt.Errorf("cannot mark content as uploaded, current status: %s", content.Status)
+// 	}
 
-	fileHeaderReader, err := s.storage.DownloadRange(ctx, clientProvidedStoragePath, 0, 511) // Hypothetical method
-	if err != nil {
-		// Handle error: maybe can't access file, or file too small
-		// You might decide to trust client MIME or mark as error
-		fmt.Printf("Warning: could not download file header for MIME detection from storage for %s: %v\n", contentID, err)
-		// Fallback or error out based on policy
-		detectedMIMEType = content.MIMEType // Or mark as error/unknown
-	} else {
-		defer fileHeaderReader.Close()
-		headerBytes, readErr := io.ReadAll(fileHeaderReader)
-		if readErr != nil {
-			fmt.Printf("Warning: could not read file header for MIME detection for %s: %v\n", contentID, readErr)
-			detectedMIMEType = content.MIMEType // Fallback
-		} else {
-			detectedMIMEType = http.DetectContentType(headerBytes)
-			fmt.Printf("Post-upload MIME check for %s. Client: %s, Server detected: %s\n", contentID, content.MIMEType, detectedMIMEType)
-			if content.MIMEType != detectedMIMEType {
-				// Your policy here: update, log, reject, etc.
-				content.MIMEType = detectedMIMEType // Example: update to server-detected
-			}
-		}
-	}
-	// --- End hypothetical steps ---
+// 	// At this point, the file is already in the storage (e.g., S3, Minio)
+// 	// We need to fetch the first 512 bytes from storage to verify MIME type.
 
-	// 1. Get metadata from storage service
-	objectMetadata, err := s.storage.StatObject(ctx, storagePath) // This is a hypothetical method you'd add to your StorageService interface and implement
-	if err != nil {
-		// Potentially mark content as error, or retry, or log and proceed with client-provided size if that's your policy
-		s.repo.UpdateStatus(ctx, contentID, model.StatusError)
-		return nil, fmt.Errorf("failed to get object metadata from storage for %s: %w", storagePath, err)
-	}
+// 	var detectedMIMEType string
+// 	var actualFileSize int64 // Get this from storage if possible
 
-	actualFileSize := objectMetadata.Size
-	// You could also trust the ContentType from storage if it's reliable,
-	// or perform your own header download + DetectContentType as discussed before.
-	// detectedMIMETypeFromStorage := objectMetadata.ContentType
+// 	// --- Hypothetical steps to get header from storage ---
+// 	// This part is pseudo-code as it depends on your StorageService interface and implementation
+// 	// You might need to add a method like `GetFirstNBytes(path, n)` to your StorageService
+// 	// or use the Download method with a ranged request if supported.
 
-	// (Optional: MIME Type detection by downloading the first 512 bytes, as discussed previously)
-	// ... your MIME detection logic here if you don't trust storage-provided MIME ...
-	// verifiedMIMEType := ...
+// 	fileHeaderReader, err := s.storage.DownloadRange(ctx, storagePath, 0, 511) // Hypothetical method
+// 	if err != nil {
+// 		// Handle error: maybe can't access file, or file too small
+// 		// You might decide to trust client MIME or mark as error
+// 		fmt.Printf("Warning: could not download file header for MIME detection from storage for %s: %v\n", contentID, err)
+// 		// Fallback or error out based on policy
+// 		detectedMIMEType = content.MIMEType // Or mark as error/unknown
+// 	} else {
+// 		defer fileHeaderReader.Close()
+// 		headerBytes, readErr := io.ReadAll(fileHeaderReader)
+// 		if readErr != nil {
+// 			fmt.Printf("Warning: could not read file header for MIME detection for %s: %v\n", contentID, readErr)
+// 			detectedMIMEType = content.MIMEType // Fallback
+// 		} else {
+// 			detectedMIMEType = http.DetectContentType(headerBytes)
+// 			fmt.Printf("Post-upload MIME check for %s. Client: %s, Server detected: %s\n", contentID, content.MIMEType, detectedMIMEType)
+// 			if content.MIMEType != detectedMIMEType {
+// 				// Your policy here: update, log, reject, etc.
+// 				content.MIMEType = detectedMIMEType // Example: update to server-detected
+// 			}
+// 		}
+// 	}
+// 	// --- End hypothetical steps ---
 
-	content.StoragePath = storagePath
-	content.FileSize = actualFileSize // Use the authoritative size from storage
-	content.Status = model.StatusUploaded
-	// content.MIMEType = verifiedMIMEType // Update if you re-verified
-	content.UpdatedAt = time.Now().UTC()
+// 	// 1. Get metadata from storage service
+// 	objectMetadata, err := s.storage.StatObject(ctx, storagePath) // This is a hypothetical method you'd add to your StorageService interface and implement
+// 	if err != nil {
+// 		// Potentially mark content as error, or retry, or log and proceed with client-provided size if that's your policy
+// 		s.repo.UpdateStatus(ctx, contentID, model.StatusError)
+// 		return nil, fmt.Errorf("failed to get object metadata from storage for %s: %w", storagePath, err)
+// 	}
 
-	if err := s.repo.Update(ctx, content); err != nil {
-		// Consider what to do if DB update fails. File is in storage.
-		// Maybe a retry mechanism or an "undo" by deleting from storage is too risky / complex here.
-		// Logging this inconsistency is critical.
-		return nil, fmt.Errorf("failed to update content record after upload confirmation: %w", err)
-	}
+// 	actualFileSize := objectMetadata.Size
+// 	// You could also trust the ContentType from storage if it's reliable,
+// 	// or perform your own header download + DetectContentType as discussed before.
+// 	// detectedMIMETypeFromStorage := objectMetadata.ContentType
 
-	return content, nil
-}
+// 	// (Optional: MIME Type detection by downloading the first 512 bytes, as discussed previously)
+// 	// ... your MIME detection logic here if you don't trust storage-provided MIME ...
+// 	// verifiedMIMEType := ...
+
+// 	content.StoragePath = storagePath
+// 	content.FileSize = actualFileSize // Use the authoritative size from storage
+// 	content.Status = model.StatusUploaded
+// 	// content.MIMEType = verifiedMIMEType // Update if you re-verified
+// 	content.UpdatedAt = time.Now().UTC()
+
+// 	if err := s.repo.Update(ctx, content); err != nil {
+// 		// Consider what to do if DB update fails. File is in storage.
+// 		// Maybe a retry mechanism or an "undo" by deleting from storage is too risky / complex here.
+// 		// Logging this inconsistency is critical.
+// 		return nil, fmt.Errorf("failed to update content record after upload confirmation: %w", err)
+// 	}
+
+// 	return content, nil
+// }

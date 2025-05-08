@@ -5,18 +5,18 @@ import (
 	"io"
 	"time"
 
-	"cloud.google.com/go/storage"
-	"github.com/torpago/simple-content-service/storage"
+	gcpstorage "cloud.google.com/go/storage"
+	"github.com/livefire2015/simple-contents/storage"
 )
 
 // GCPStorage implements StorageService using Google Cloud Storage
 type GCPStorage struct {
-	client     *storage.Client
+	client     *gcpstorage.Client
 	bucketName string
 }
 
 // NewGCPStorage creates a new GCP storage service
-func NewGCPStorage(client *storage.Client, bucketName string) storage.StorageService {
+func NewGCPStorage(client *gcpstorage.Client, bucketName string) *GCPStorage {
 	return &GCPStorage{
 		client:     client,
 		bucketName: bucketName,
@@ -24,7 +24,7 @@ func NewGCPStorage(client *storage.Client, bucketName string) storage.StorageSer
 }
 
 // Store saves content data to storage and returns the path
-func (s *GCPStorage) Store(ctx context.Context, key string, data io.Reader, size int64, contentType string) (string, error) {
+func (s *GCPStorage) Uploaded(ctx context.Context, key string, data io.Reader, size int64, contentType string) (string, error) {
 	bucket := s.client.Bucket(s.bucketName)
 	obj := bucket.Object(key)
 	writer := obj.NewWriter(ctx)
@@ -43,7 +43,7 @@ func (s *GCPStorage) Store(ctx context.Context, key string, data io.Reader, size
 }
 
 // Retrieve gets content data from storage
-func (s *GCPStorage) Retrieve(ctx context.Context, path string) (io.ReadCloser, error) {
+func (s *GCPStorage) Download(ctx context.Context, path string) (io.ReadCloser, error) {
 	bucket := s.client.Bucket(s.bucketName)
 	obj := bucket.Object(path)
 	return obj.NewReader(ctx)
@@ -57,14 +57,13 @@ func (s *GCPStorage) Delete(ctx context.Context, path string) error {
 }
 
 // GetURL returns a URL for accessing the content
-func (s *GCPStorage) GetURL(ctx context.Context, path string, expiry time.Duration) (string, error) {
-	bucket := s.client.Bucket(s.bucketName)
-	obj := bucket.Object(path)
+func (s *GCPStorage) GetPresignedDownloadURL(ctx context.Context, path string, options storage.PresignedURLOptions) (string, error) {
 
-	opts := &storage.SignedURLOptions{
+	// FIXME
+	opts := &gcpstorage.SignedURLOptions{
 		Method:  "GET",
-		Expires: time.Now().Add(expiry),
+		Expires: time.Now().Add(options.Expiry),
 	}
 
-	return obj.SignedURL(opts)
+	return gcpstorage.SignedURL(s.bucketName, path, opts)
 }

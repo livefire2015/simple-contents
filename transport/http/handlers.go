@@ -11,8 +11,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
-	"github.com/torpago/simple-content-service/service"
-	"github.com/torpago/simple-contents/model"
+	"github.com/livefire2015/simple-contents/model"
+	"github.com/livefire2015/simple-contents/service"
 )
 
 // ContentHandler handles HTTP requests for content operations
@@ -61,7 +61,6 @@ func (h *ContentHandler) CreateContent(w http.ResponseWriter, r *http.Request) {
 
 	// Get form values
 	name := r.FormValue("name")
-	description := r.FormValue("description")
 	metadataStr := r.FormValue("metadata")
 
 	// Parse metadata if provided
@@ -85,12 +84,10 @@ func (h *ContentHandler) CreateContent(w http.ResponseWriter, r *http.Request) {
 
 	// Create content
 	input := service.CreateContentInput{
-		Name:        name,
-		Description: description,
-		ContentType: header.Header.Get("Content-Type"),
-		Data:        file,
-		Size:        header.Size,
-		Metadata:    metadata,
+		FileName: name,
+		MIMEType: header.Header.Get("Content-Type"),
+		FileSize: header.Size,
+		Metadata: metadata,
 	}
 
 	content, err := h.contentService.CreateContent(r.Context(), input)
@@ -153,10 +150,9 @@ func (h *ContentHandler) UpdateContent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	updateInput := service.UpdateContentInput{
-		ID:          id,
-		Name:        input.Name,
-		Description: input.Description,
-		Metadata:    input.Metadata,
+		ID:       id,
+		FileName: input.Name,
+		Metadata: input.Metadata,
 	}
 
 	content, err := h.contentService.UpdateContent(r.Context(), updateInput)
@@ -218,9 +214,9 @@ func (h *ContentHandler) GetContentData(w http.ResponseWriter, r *http.Request) 
 	defer data.Close()
 
 	// Set appropriate headers
-	w.Header().Set("Content-Type", content.ContentType)
-	w.Header().Set("Content-Disposition", "attachment; filename="+content.Name)
-	w.Header().Set("Content-Length", strconv.FormatInt(content.Size, 10))
+	w.Header().Set("Content-Type", content.MIMEType)
+	w.Header().Set("Content-Disposition", "attachment; filename="+content.FileName)
+	w.Header().Set("Content-Length", strconv.FormatInt(content.FileSize, 10))
 
 	// Stream the data to the response
 	_, err = io.Copy(w, data)
@@ -309,7 +305,7 @@ func (h *ContentHandler) ListContents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	input := service.ListContentInput{
-		ContentType: contentType,
+		MIMEType:    contentType,
 		MinSize:     minSize,
 		MaxSize:     maxSize,
 		CreatedFrom: createdFrom,

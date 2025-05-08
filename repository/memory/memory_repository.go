@@ -7,8 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/torpago/simple-content-service/repository"
-	"github.com/torpago/simple-contents/model"
+	"github.com/livefire2015/simple-contents/model"
 )
 
 var (
@@ -22,14 +21,14 @@ type MemoryRepository struct {
 }
 
 // NewMemoryRepository creates a new in-memory repository
-func NewMemoryRepository() repository.ContentRepository {
+func NewMemoryRepository() *MemoryRepository {
 	return &MemoryRepository{
 		contents: make(map[uuid.UUID]*model.Content),
 	}
 }
 
 // Create stores a new content item
-func (r *MemoryRepository) Create(ctx context.Context, content *model.Content) error {
+func (r *MemoryRepository) CreateContent(ctx context.Context, content *model.Content) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -46,7 +45,7 @@ func (r *MemoryRepository) Create(ctx context.Context, content *model.Content) e
 }
 
 // GetByID retrieves a content item by its ID
-func (r *MemoryRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Content, error) {
+func (r *MemoryRepository) GetContentByID(ctx context.Context, id uuid.UUID) (*model.Content, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -61,7 +60,7 @@ func (r *MemoryRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Co
 }
 
 // Update updates an existing content item
-func (r *MemoryRepository) Update(ctx context.Context, content *model.Content) error {
+func (r *MemoryRepository) UpdateContent(ctx context.Context, content *model.Content) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -78,7 +77,7 @@ func (r *MemoryRepository) Update(ctx context.Context, content *model.Content) e
 }
 
 // Delete marks a content item as deleted
-func (r *MemoryRepository) Delete(ctx context.Context, id uuid.UUID) error {
+func (r *MemoryRepository) DeleteContent(ctx context.Context, id uuid.UUID) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -93,7 +92,7 @@ func (r *MemoryRepository) Delete(ctx context.Context, id uuid.UUID) error {
 }
 
 // List retrieves content items based on filter criteria
-func (r *MemoryRepository) List(ctx context.Context, filter model.ContentFilter, offset, limit int) ([]*model.Content, int, error) {
+func (r *MemoryRepository) ListContent(ctx context.Context, filter model.ContentFilter, offset, limit int) ([]*model.Content, int, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -105,15 +104,15 @@ func (r *MemoryRepository) List(ctx context.Context, filter model.ContentFilter,
 			continue
 		}
 
-		if filter.ContentType != "" && content.ContentType != filter.ContentType {
+		if filter.MIMEType != "" && content.MIMEType != filter.MIMEType {
 			continue
 		}
 
-		if filter.MinSize != nil && content.Size < *filter.MinSize {
+		if filter.MinSize != nil && content.FileSize < *filter.MinSize {
 			continue
 		}
 
-		if filter.MaxSize != nil && content.Size > *filter.MaxSize {
+		if filter.MaxSize != nil && content.FileSize > *filter.MaxSize {
 			continue
 		}
 

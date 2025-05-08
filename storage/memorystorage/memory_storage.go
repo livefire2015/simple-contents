@@ -5,11 +5,9 @@ import (
 	"context"
 	"errors"
 	"io"
-	"io/ioutil"
 	"sync"
-	"time"
 
-	"github.com/torpago/simple-content-service/storage"
+	"github.com/livefire2015/simple-contents/storage"
 )
 
 var (
@@ -23,19 +21,19 @@ type MemoryStorage struct {
 }
 
 // NewMemoryStorage creates a new in-memory storage service
-func NewMemoryStorage() storage.StorageService {
+func NewMemoryStorage() *MemoryStorage {
 	return &MemoryStorage{
 		storage: make(map[string][]byte),
 	}
 }
 
 // Store saves content data to storage and returns the path
-func (s *MemoryStorage) Store(ctx context.Context, key string, data io.Reader, size int64, contentType string) (string, error) {
+func (s *MemoryStorage) Upload(ctx context.Context, key string, data io.Reader, size int64, contentType string) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	// Read all data from the reader
-	content, err := ioutil.ReadAll(data)
+	content, err := io.ReadAll(data)
 	if err != nil {
 		return "", err
 	}
@@ -47,7 +45,7 @@ func (s *MemoryStorage) Store(ctx context.Context, key string, data io.Reader, s
 }
 
 // Retrieve gets content data from storage
-func (s *MemoryStorage) Retrieve(ctx context.Context, path string) (io.ReadCloser, error) {
+func (s *MemoryStorage) Download(ctx context.Context, path string) (io.ReadCloser, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -75,7 +73,7 @@ func (s *MemoryStorage) Delete(ctx context.Context, path string) error {
 
 // GetURL returns a URL for accessing the content
 // For in-memory storage, this is just a placeholder as there's no real URL
-func (s *MemoryStorage) GetURL(ctx context.Context, path string, expiry time.Duration) (string, error) {
+func (s *MemoryStorage) GetPresignedDownloadURL(ctx context.Context, path string, options storage.PresignedURLOptions) (string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 

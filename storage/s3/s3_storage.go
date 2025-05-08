@@ -3,11 +3,10 @@ package s3
 import (
 	"context"
 	"io"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/torpago/simple-content-service/storage"
+	"github.com/livefire2015/simple-contents/storage"
 )
 
 // S3Storage implements StorageService using AWS S3
@@ -18,7 +17,7 @@ type S3Storage struct {
 }
 
 // NewS3Storage creates a new S3 storage service
-func NewS3Storage(client *s3.Client, bucketName, region string) storage.StorageService {
+func NewS3Storage(client *s3.Client, bucketName, region string) *S3Storage {
 	return &S3Storage{
 		client:     client,
 		bucketName: bucketName,
@@ -26,8 +25,8 @@ func NewS3Storage(client *s3.Client, bucketName, region string) storage.StorageS
 	}
 }
 
-// Store saves content data to storage and returns the path
-func (s *S3Storage) Store(ctx context.Context, key string, data io.Reader, size int64, contentType string) (string, error) {
+// Upload saves content data to storage and returns the path
+func (s *S3Storage) Upload(ctx context.Context, key string, data io.Reader, size int64, contentType string) (string, error) {
 	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket:      aws.String(s.bucketName),
 		Key:         aws.String(key),
@@ -41,8 +40,8 @@ func (s *S3Storage) Store(ctx context.Context, key string, data io.Reader, size 
 	return key, nil
 }
 
-// Retrieve gets content data from storage
-func (s *S3Storage) Retrieve(ctx context.Context, path string) (io.ReadCloser, error) {
+// Download gets content data from storage
+func (s *S3Storage) Downloa(ctx context.Context, path string) (io.ReadCloser, error) {
 	result, err := s.client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(s.bucketName),
 		Key:    aws.String(path),
@@ -63,15 +62,19 @@ func (s *S3Storage) Delete(ctx context.Context, path string) error {
 	return err
 }
 
-// GetURL returns a URL for accessing the content
-func (s *S3Storage) GetURL(ctx context.Context, path string, expiry time.Duration) (string, error) {
+// // GetPresignedUploadURL generates a presigned URL for uploading content
+// func (s *S3Storage) GetPresignedUploadURL(ctx context.Context, contentID string, fileName string, mimeType string, options storage.PresignedURLOptions) (url *url.URL, additionalHeaders map[string]string, err error) {
+// 	return request.URL, nil
+// }
+
+func (s *S3Storage) GetPresignedDownloadURL(ctx context.Context, storagePath string, options storage.PresignedURLOptions) (url string, err error) {
 	presignClient := s3.NewPresignClient(s.client)
-	
+
 	request, err := presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(s.bucketName),
-		Key:    aws.String(path),
+		Key:    aws.String(storagePath),
 	}, func(opts *s3.PresignOptions) {
-		opts.Expires = expiry
+		opts.Expires = options.Expiry
 	})
 	if err != nil {
 		return "", err

@@ -3,10 +3,9 @@ package minio
 import (
 	"context"
 	"io"
-	"time"
 
+	"github.com/livefire2015/simple-contents/storage"
 	"github.com/minio/minio-go/v7"
-	"github.com/torpago/simple-content-service/storage"
 )
 
 // MinioStorage implements StorageService using MinIO
@@ -16,15 +15,15 @@ type MinioStorage struct {
 }
 
 // NewMinioStorage creates a new MinIO storage service
-func NewMinioStorage(client *minio.Client, bucketName string) storage.StorageService {
+func NewMinioStorage(client *minio.Client, bucketName string) *MinioStorage {
 	return &MinioStorage{
 		client:     client,
 		bucketName: bucketName,
 	}
 }
 
-// Store saves content data to storage and returns the path
-func (s *MinioStorage) Store(ctx context.Context, key string, data io.Reader, size int64, contentType string) (string, error) {
+// Upload saves content data to storage and returns the path
+func (s *MinioStorage) Upload(ctx context.Context, key string, data io.Reader, size int64, contentType string) (string, error) {
 	_, err := s.client.PutObject(ctx, s.bucketName, key, data, size, minio.PutObjectOptions{
 		ContentType: contentType,
 	})
@@ -36,7 +35,7 @@ func (s *MinioStorage) Store(ctx context.Context, key string, data io.Reader, si
 }
 
 // Retrieve gets content data from storage
-func (s *MinioStorage) Retrieve(ctx context.Context, path string) (io.ReadCloser, error) {
+func (s *MinioStorage) Download(ctx context.Context, path string) (io.ReadCloser, error) {
 	obj, err := s.client.GetObject(ctx, s.bucketName, path, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, err
@@ -51,9 +50,9 @@ func (s *MinioStorage) Delete(ctx context.Context, path string) error {
 }
 
 // GetURL returns a URL for accessing the content
-func (s *MinioStorage) GetURL(ctx context.Context, path string, expiry time.Duration) (string, error) {
+func (s *MinioStorage) GetPresignedDownloadURL(ctx context.Context, path string, options storage.PresignedURLOptions) (string, error) {
 	// Generate a presigned URL for temporary access
-	presignedURL, err := s.client.PresignedGetObject(ctx, s.bucketName, path, expiry, nil)
+	presignedURL, err := s.client.PresignedGetObject(ctx, s.bucketName, path, options.Expiry, nil)
 	if err != nil {
 		return "", err
 	}

@@ -12,10 +12,10 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/torpago/simple-content-service/repository/memory"
-	"github.com/torpago/simple-content-service/service"
-	"github.com/torpago/simple-content-service/storage/memorystorage"
-	transportHttp "github.com/torpago/simple-content-service/transport/http"
+	"github.com/livefire2015/simple-contents/repository/memory"
+	"github.com/livefire2015/simple-contents/service"
+	"github.com/livefire2015/simple-contents/storage/memorystorage"
+	transportHttp "github.com/livefire2015/simple-contents/transport/http"
 )
 
 func main() {

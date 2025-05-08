@@ -9,8 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	"github.com/torpago/simple-content-service/repository"
-	"github.com/torpago/simple-contents/model"
+	"github.com/livefire2015/simple-contents/model"
 )
 
 var (
@@ -23,7 +22,7 @@ type PostgresRepository struct {
 }
 
 // NewPostgresRepository creates a new PostgreSQL repository
-func NewPostgresRepository(db *sqlx.DB) repository.ContentRepository {
+func NewPostgresRepository(db *sqlx.DB) *PostgresRepository {
 	return &PostgresRepository{
 		db: db,
 	}
@@ -34,8 +33,8 @@ type contentDB struct {
 	ID          uuid.UUID      `db:"id"`
 	Name        string         `db:"name"`
 	Description string         `db:"description"`
-	ContentType string         `db:"content_type"`
-	Size        int64          `db:"size"`
+	MIMEType    string         `db:"mime_type"`
+	FileSize    int64          `db:"file_size"`
 	Path        string         `db:"path"`
 	Metadata    sql.NullString `db:"metadata"` // JSON stored as string
 	CreatedAt   time.Time      `db:"created_at"`
@@ -47,11 +46,10 @@ type contentDB struct {
 func (c *contentDB) toModel() (*model.Content, error) {
 	content := &model.Content{
 		ID:          c.ID,
-		Name:        c.Name,
-		Description: c.Description,
-		ContentType: c.ContentType,
-		Size:        c.Size,
-		Path:        c.Path,
+		FileName:    c.Name,
+		MIMEType:    c.MIMEType,
+		FileSize:    c.FileSize,
+		StoragePath: c.Path,
 		CreatedAt:   c.CreatedAt,
 		UpdatedAt:   c.UpdatedAt,
 	}
@@ -77,14 +75,13 @@ func (c *contentDB) toModel() (*model.Content, error) {
 // fromModel converts a domain model to a database model
 func fromModel(content *model.Content) (*contentDB, error) {
 	dbContent := &contentDB{
-		ID:          content.ID,
-		Name:        content.Name,
-		Description: content.Description,
-		ContentType: content.ContentType,
-		Size:        content.Size,
-		Path:        content.Path,
-		CreatedAt:   content.CreatedAt,
-		UpdatedAt:   content.UpdatedAt,
+		ID:        content.ID,
+		Name:      content.FileName,
+		MIMEType:  content.MIMEType,
+		FileSize:  content.FileSize,
+		Path:      content.StoragePath,
+		CreatedAt: content.CreatedAt,
+		UpdatedAt: content.UpdatedAt,
 	}
 
 	if content.DeletedAt != nil {
@@ -110,7 +107,7 @@ func fromModel(content *model.Content) (*contentDB, error) {
 }
 
 // Create stores a new content item
-func (r *PostgresRepository) Create(ctx context.Context, content *model.Content) error {
+func (r *PostgresRepository) CreateContent(ctx context.Context, content *model.Content) error {
 	if content.ID == uuid.Nil {
 		content.ID = uuid.New()
 	}
@@ -137,7 +134,7 @@ func (r *PostgresRepository) Create(ctx context.Context, content *model.Content)
 }
 
 // GetByID retrieves a content item by its ID
-func (r *PostgresRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Content, error) {
+func (r *PostgresRepository) GetContentByID(ctx context.Context, id uuid.UUID) (*model.Content, error) {
 	query := `
 		SELECT * FROM contents 
 		WHERE id = $1 AND deleted_at IS NULL
@@ -155,7 +152,7 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.
 }
 
 // Update updates an existing content item
-func (r *PostgresRepository) Update(ctx context.Context, content *model.Content) error {
+func (r *PostgresRepository) UpdateContent(ctx context.Context, content *model.Content) error {
 	content.UpdatedAt = time.Now()
 
 	dbContent, err := fromModel(content)
@@ -193,7 +190,7 @@ func (r *PostgresRepository) Update(ctx context.Context, content *model.Content)
 }
 
 // Delete marks a content item as deleted
-func (r *PostgresRepository) Delete(ctx context.Context, id uuid.UUID) error {
+func (r *PostgresRepository) DeleteContent(ctx context.Context, id uuid.UUID) error {
 	query := `
 		UPDATE contents SET
 			deleted_at = $1
@@ -223,9 +220,9 @@ func buildWhereClause(filter model.ContentFilter) (string, []interface{}) {
 	var params []interface{}
 	paramCount := 1
 
-	if filter.ContentType != "" {
-		where += " AND content_type = $" + string(paramCount)
-		params = append(params, filter.ContentType)
+	if filter.MIMEType != "" {
+		where += " AND mime_type = $" + string(paramCount)
+		params = append(params, filter.MIMEType)
 		paramCount++
 	}
 
@@ -266,7 +263,7 @@ func buildWhereClause(filter model.ContentFilter) (string, []interface{}) {
 }
 
 // List retrieves content items based on filter criteria
-func (r *PostgresRepository) List(ctx context.Context, filter model.ContentFilter, offset, limit int) ([]*model.Content, int, error) {
+func (r *PostgresRepository) ListContent(ctx context.Context, filter model.ContentFilter, offset, limit int) ([]*model.Content, int, error) {
 	whereClause, params := buildWhereClause(filter)
 
 	// Count total matching records
