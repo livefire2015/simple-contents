@@ -33,8 +33,8 @@ type contentDB struct {
 	ID          uuid.UUID      `db:"id"`
 	Name        string         `db:"name"`
 	Description string         `db:"description"`
-	ContentType string         `db:"content_type"`
-	Size        int64          `db:"size"`
+	MIMEType    string         `db:"mime_type"`
+	FileSize    int64          `db:"file_size"`
 	Path        string         `db:"path"`
 	Metadata    sql.NullString `db:"metadata"` // JSON stored as string
 	CreatedAt   time.Time      `db:"created_at"`
@@ -46,11 +46,10 @@ type contentDB struct {
 func (c *contentDB) toModel() (*model.Content, error) {
 	content := &model.Content{
 		ID:          c.ID,
-		Name:        c.Name,
-		Description: c.Description,
-		ContentType: c.ContentType,
-		Size:        c.Size,
-		Path:        c.Path,
+		FileName:    c.Name,
+		MIMEType:    c.MIMEType,
+		FileSize:    c.FileSize,
+		StoragePath: c.Path,
 		CreatedAt:   c.CreatedAt,
 		UpdatedAt:   c.UpdatedAt,
 	}
@@ -76,14 +75,13 @@ func (c *contentDB) toModel() (*model.Content, error) {
 // fromModel converts a domain model to a database model
 func fromModel(content *model.Content) (*contentDB, error) {
 	dbContent := &contentDB{
-		ID:          content.ID,
-		Name:        content.Name,
-		Description: content.Description,
-		ContentType: content.ContentType,
-		Size:        content.Size,
-		Path:        content.Path,
-		CreatedAt:   content.CreatedAt,
-		UpdatedAt:   content.UpdatedAt,
+		ID:        content.ID,
+		Name:      content.FileName,
+		MIMEType:  content.MIMEType,
+		FileSize:  content.FileSize,
+		Path:      content.StoragePath,
+		CreatedAt: content.CreatedAt,
+		UpdatedAt: content.UpdatedAt,
 	}
 
 	if content.DeletedAt != nil {

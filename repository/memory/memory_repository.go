@@ -104,15 +104,15 @@ func (r *MemoryRepository) ListContent(ctx context.Context, filter model.Content
 			continue
 		}
 
-		if filter.ContentType != "" && content.ContentType != filter.ContentType {
+		if filter.ContentType != "" && content.MIMEType != filter.ContentType {
 			continue
 		}
 
-		if filter.MinSize != nil && content.Size < *filter.MinSize {
+		if filter.MinSize != nil && content.FileSize < *filter.MinSize {
 			continue
 		}
 
-		if filter.MaxSize != nil && content.Size > *filter.MaxSize {
+		if filter.MaxSize != nil && content.FileSize > *filter.MaxSize {
 			continue
 		}
 
