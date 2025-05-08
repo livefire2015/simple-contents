@@ -42,7 +42,8 @@ type Metadata map[string]interface{}
 
 // ContentFilter represents filter criteria for content queries
 type ContentFilter struct {
-	ContentType string
+	FileName    string
+	MIMEType    string
 	MinSize     *int64
 	MaxSize     *int64
 	CreatedFrom *time.Time

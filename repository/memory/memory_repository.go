@@ -92,7 +92,7 @@ func (r *MemoryRepository) DeleteContent(ctx context.Context, id uuid.UUID) erro
 }
 
 // List retrieves content items based on filter criteria
-func (r *MemoryRepository) ListContent(ctx context.Context, filter model.ContentFilter, offset, limit int) ([]*model.Content, int, error) {
+func (r *MemoryRepository) ListContents(ctx context.Context, filter model.ContentFilter, offset, limit int) ([]*model.Content, int, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -104,7 +104,7 @@ func (r *MemoryRepository) ListContent(ctx context.Context, filter model.Content
 			continue
 		}
 
-		if filter.ContentType != "" && content.MIMEType != filter.ContentType {
+		if filter.MIMEType != "" && content.MIMEType != filter.MIMEType {
 			continue
 		}
 

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
 	"github.com/sgao640/simple-contents/model" // Adjust import path as needed
@@ -20,6 +21,7 @@ type ContentRepository interface {
 	// --- Content Specific Methods ---
 	CreateContent(ctx context.Context, content *model.Content) error
 	GetContentByID(ctx context.Context, id uuid.UUID) (*model.Content, error)
+	ListContent(ctx context.Context, filter model.ContentFilter, offset int, limit int) ([]*model.Content, int, error)
 	UpdateContent(ctx context.Context, content *model.Content) error // For metadata, status, etc.
 	DeleteContent(ctx context.Context, id uuid.UUID) error           // This would cascade to associations if DB constraints are set
 
@@ -47,3 +49,5 @@ type ContentRepository interface {
 	// (Optional) Search content based on association metadata (more complex query)
 	// SearchContentByAssociationMetadata(ctx context.Context, entityType string, entityID string, metadataQuery map[string]interface{}, options ListOptions) ([]*model.Content, int64, error)
 }
+
+var ErrContentNotFound = errors.New("content not found")

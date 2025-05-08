@@ -220,9 +220,9 @@ func buildWhereClause(filter model.ContentFilter) (string, []interface{}) {
 	var params []interface{}
 	paramCount := 1
 
-	if filter.ContentType != "" {
-		where += " AND content_type = $" + string(paramCount)
-		params = append(params, filter.ContentType)
+	if filter.MIMEType != "" {
+		where += " AND mime_type = $" + string(paramCount)
+		params = append(params, filter.MIMEType)
 		paramCount++
 	}
 
