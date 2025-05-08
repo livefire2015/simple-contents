@@ -56,13 +56,8 @@ make run
 To build and run the application in a Docker container:
 
 ```bash
-# Start the application server
-docker-compose up --build 
-```
-Clean up - Remove all volumes created by your Compose project
-
-```
-docker-compose down -v
+make docker-build
+docker run -p 8080:8080 simple-contents
 ```
 
 ## Project Structure
