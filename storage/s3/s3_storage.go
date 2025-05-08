@@ -7,7 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/torpago/simple-content-service/storage"
+	"github.com/sgao640/simple-contents/storage"
 )
 
 // S3Storage implements StorageService using AWS S3
@@ -66,7 +66,7 @@ func (s *S3Storage) Delete(ctx context.Context, path string) error {
 // GetURL returns a URL for accessing the content
 func (s *S3Storage) GetURL(ctx context.Context, path string, expiry time.Duration) (string, error) {
 	presignClient := s3.NewPresignClient(s.client)
-	
+
 	request, err := presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(s.bucketName),
 		Key:    aws.String(path),

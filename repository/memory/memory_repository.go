@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/torpago/simple-content-service/repository"
-	"github.com/torpago/simple-contents/model"
+	"github.com/sgao640/simple-contents/model"
+	"github.com/sgao640/simple-contents/repository"
 )
 
 var (

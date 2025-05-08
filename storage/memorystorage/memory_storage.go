@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/torpago/simple-content-service/storage"
+	"github.com/sgao640/simple-contents/storage"
 )
 
 var (

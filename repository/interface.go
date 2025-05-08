@@ -2,7 +2,8 @@ package repository
 
 import (
 	"context"
-	"simple-contents/model" // Adjust import path as needed
+
+	"github.com/sgao640/simple-contents/model" // Adjust import path as needed
 )
 
 // ListOptions remains the same (for pagination, sorting)

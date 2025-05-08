@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/minio/minio-go/v7"
-	"github.com/torpago/simple-content-service/storage"
+	"github.com/sgao640/simple-contents/storage"
 )
 
 // MinioStorage implements StorageService using MinIO

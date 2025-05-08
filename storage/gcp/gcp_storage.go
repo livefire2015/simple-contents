@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
-	"github.com/torpago/simple-content-service/storage"
 )
 
 // GCPStorage implements StorageService using Google Cloud Storage

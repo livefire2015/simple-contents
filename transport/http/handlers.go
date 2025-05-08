@@ -11,8 +11,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
-	"github.com/torpago/simple-content-service/service"
-	"github.com/torpago/simple-contents/model"
+	"github.com/sgao640/simple-contents/model"
+	"github.com/sgao640/simple-contents/service"
 )
 
 // ContentHandler handles HTTP requests for content operations

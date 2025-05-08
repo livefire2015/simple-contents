@@ -4,8 +4,9 @@ import (
 	"context"
 	"io"
 	"net/url"
-	"simple-contents/model" // Assuming your model package path
 	"time"
+
+	"github.com/sgao640/simple-contents/model" // Assuming your model package path
 )
 
 // PresignedURLOptions provides options for generating presigned URLs.
