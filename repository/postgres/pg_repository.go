@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/sgao640/simple-contents/model"
-	"github.com/sgao640/simple-contents/repository"
 )
 
 var (
@@ -23,7 +22,7 @@ type PostgresRepository struct {
 }
 
 // NewPostgresRepository creates a new PostgreSQL repository
-func NewPostgresRepository(db *sqlx.DB) repository.ContentRepository {
+func NewPostgresRepository(db *sqlx.DB) *PostgresRepository {
 	return &PostgresRepository{
 		db: db,
 	}
@@ -110,7 +109,7 @@ func fromModel(content *model.Content) (*contentDB, error) {
 }
 
 // Create stores a new content item
-func (r *PostgresRepository) Create(ctx context.Context, content *model.Content) error {
+func (r *PostgresRepository) CreateContent(ctx context.Context, content *model.Content) error {
 	if content.ID == uuid.Nil {
 		content.ID = uuid.New()
 	}
@@ -137,7 +136,7 @@ func (r *PostgresRepository) Create(ctx context.Context, content *model.Content)
 }
 
 // GetByID retrieves a content item by its ID
-func (r *PostgresRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Content, error) {
+func (r *PostgresRepository) GetContentByID(ctx context.Context, id uuid.UUID) (*model.Content, error) {
 	query := `
 		SELECT * FROM contents 
 		WHERE id = $1 AND deleted_at IS NULL
@@ -155,7 +154,7 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.
 }
 
 // Update updates an existing content item
-func (r *PostgresRepository) Update(ctx context.Context, content *model.Content) error {
+func (r *PostgresRepository) UpdateContent(ctx context.Context, content *model.Content) error {
 	content.UpdatedAt = time.Now()
 
 	dbContent, err := fromModel(content)
@@ -193,7 +192,7 @@ func (r *PostgresRepository) Update(ctx context.Context, content *model.Content)
 }
 
 // Delete marks a content item as deleted
-func (r *PostgresRepository) Delete(ctx context.Context, id uuid.UUID) error {
+func (r *PostgresRepository) DeleteContent(ctx context.Context, id uuid.UUID) error {
 	query := `
 		UPDATE contents SET
 			deleted_at = $1
@@ -266,7 +265,7 @@ func buildWhereClause(filter model.ContentFilter) (string, []interface{}) {
 }
 
 // List retrieves content items based on filter criteria
-func (r *PostgresRepository) List(ctx context.Context, filter model.ContentFilter, offset, limit int) ([]*model.Content, int, error) {
+func (r *PostgresRepository) ListContent(ctx context.Context, filter model.ContentFilter, offset, limit int) ([]*model.Content, int, error) {
 	whereClause, params := buildWhereClause(filter)
 
 	// Count total matching records

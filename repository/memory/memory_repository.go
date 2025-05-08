@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/sgao640/simple-contents/model"
-	"github.com/sgao640/simple-contents/repository"
 )
 
 var (
@@ -22,14 +21,14 @@ type MemoryRepository struct {
 }
 
 // NewMemoryRepository creates a new in-memory repository
-func NewMemoryRepository() repository.ContentRepository {
+func NewMemoryRepository() *MemoryRepository {
 	return &MemoryRepository{
 		contents: make(map[uuid.UUID]*model.Content),
 	}
 }
 
 // Create stores a new content item
-func (r *MemoryRepository) Create(ctx context.Context, content *model.Content) error {
+func (r *MemoryRepository) CreateContent(ctx context.Context, content *model.Content) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -46,7 +45,7 @@ func (r *MemoryRepository) Create(ctx context.Context, content *model.Content) e
 }
 
 // GetByID retrieves a content item by its ID
-func (r *MemoryRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Content, error) {
+func (r *MemoryRepository) GetContentByID(ctx context.Context, id uuid.UUID) (*model.Content, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -61,7 +60,7 @@ func (r *MemoryRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Co
 }
 
 // Update updates an existing content item
-func (r *MemoryRepository) Update(ctx context.Context, content *model.Content) error {
+func (r *MemoryRepository) UpdateContent(ctx context.Context, content *model.Content) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -78,7 +77,7 @@ func (r *MemoryRepository) Update(ctx context.Context, content *model.Content) e
 }
 
 // Delete marks a content item as deleted
-func (r *MemoryRepository) Delete(ctx context.Context, id uuid.UUID) error {
+func (r *MemoryRepository) DeleteContent(ctx context.Context, id uuid.UUID) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -93,7 +92,7 @@ func (r *MemoryRepository) Delete(ctx context.Context, id uuid.UUID) error {
 }
 
 // List retrieves content items based on filter criteria
-func (r *MemoryRepository) List(ctx context.Context, filter model.ContentFilter, offset, limit int) ([]*model.Content, int, error) {
+func (r *MemoryRepository) ListContent(ctx context.Context, filter model.ContentFilter, offset, limit int) ([]*model.Content, int, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
