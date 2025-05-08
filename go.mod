@@ -1,4 +1,4 @@
-module github.com/torpago/simple-content-service
+module github.com/livefire2015/simple-contents
 
 go 1.23.8
 
