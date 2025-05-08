@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	"github.com/sgao640/simple-contents/model"
+	"github.com/livefire2015/simple-contents/model"
 )
 
 var (

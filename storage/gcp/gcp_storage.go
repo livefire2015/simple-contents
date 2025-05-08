@@ -6,7 +6,7 @@ import (
 	"time"
 
 	gcpstorage "cloud.google.com/go/storage"
-	"github.com/sgao640/simple-contents/storage"
+	"github.com/livefire2015/simple-contents/storage"
 )
 
 // GCPStorage implements StorageService using Google Cloud Storage

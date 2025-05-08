@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/sgao640/simple-contents/model"
+	"github.com/livefire2015/simple-contents/model"
 )
 
 var (

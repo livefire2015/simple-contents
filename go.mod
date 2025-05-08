@@ -1,4 +1,4 @@
-module github.com/sgao640/simple-contents
+module github.com/livefire2015/simple-contents
 
 go 1.23.8
 

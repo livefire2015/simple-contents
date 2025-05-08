@@ -6,7 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/sgao640/simple-contents/storage"
+	"github.com/livefire2015/simple-contents/storage"
 )
 
 // S3Storage implements StorageService using AWS S3

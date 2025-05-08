@@ -4,8 +4,8 @@ import (
 	"context"
 	"io"
 
+	"github.com/livefire2015/simple-contents/storage"
 	"github.com/minio/minio-go/v7"
-	"github.com/sgao640/simple-contents/storage"
 )
 
 // MinioStorage implements StorageService using MinIO

@@ -12,10 +12,10 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/sgao640/simple-contents/repository/memory"
-	"github.com/sgao640/simple-contents/service"
-	"github.com/sgao640/simple-contents/storage/memorystorage"
-	transportHttp "github.com/sgao640/simple-contents/transport/http"
+	"github.com/livefire2015/simple-contents/repository/memory"
+	"github.com/livefire2015/simple-contents/service"
+	"github.com/livefire2015/simple-contents/storage/memorystorage"
+	transportHttp "github.com/livefire2015/simple-contents/transport/http"
 )
 
 func main() {

@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	"github.com/sgao640/simple-contents/model" // Adjust import path as needed
+	"github.com/livefire2015/simple-contents/model" // Adjust import path as needed
 )
 
 // ListOptions remains the same (for pagination, sorting)

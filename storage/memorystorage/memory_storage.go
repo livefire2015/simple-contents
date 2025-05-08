@@ -7,7 +7,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/sgao640/simple-contents/storage"
+	"github.com/livefire2015/simple-contents/storage"
 )
 
 var (

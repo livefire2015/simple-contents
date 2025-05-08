@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/sgao640/simple-contents/model"
-	"github.com/sgao640/simple-contents/repository"
-	"github.com/sgao640/simple-contents/storage"
+	"github.com/livefire2015/simple-contents/model"
+	"github.com/livefire2015/simple-contents/repository"
+	"github.com/livefire2015/simple-contents/storage"
 )
 
 var (
