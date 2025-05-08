@@ -11,8 +11,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
-	"github.com/torpago/simple-content-service/model"
 	"github.com/torpago/simple-content-service/service"
+	"github.com/torpago/simple-contents/model"
 )
 
 // ContentHandler handles HTTP requests for content operations
@@ -142,8 +142,8 @@ func (h *ContentHandler) UpdateContent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var input struct {
-		Name        string        `json:"name"`
-		Description string        `json:"description"`
+		Name        string         `json:"name"`
+		Description string         `json:"description"`
 		Metadata    model.Metadata `json:"metadata"`
 	}
 
@@ -267,14 +267,14 @@ func (h *ContentHandler) GetContentURL(w http.ResponseWriter, r *http.Request) {
 func (h *ContentHandler) ListContents(w http.ResponseWriter, r *http.Request) {
 	// Parse query parameters
 	query := r.URL.Query()
-	
+
 	// Parse pagination parameters
 	page, _ := strconv.Atoi(query.Get("page"))
 	pageSize, _ := strconv.Atoi(query.Get("pageSize"))
-	
+
 	// Parse filter parameters
 	contentType := query.Get("contentType")
-	
+
 	var minSize, maxSize *int64
 	if minSizeStr := query.Get("minSize"); minSizeStr != "" {
 		if val, err := strconv.ParseInt(minSizeStr, 10, 64); err == nil {
@@ -286,7 +286,7 @@ func (h *ContentHandler) ListContents(w http.ResponseWriter, r *http.Request) {
 			maxSize = &val
 		}
 	}
-	
+
 	var createdFrom, createdTo *time.Time
 	if fromStr := query.Get("createdFrom"); fromStr != "" {
 		if t, err := time.Parse(time.RFC3339, fromStr); err == nil {
@@ -298,7 +298,7 @@ func (h *ContentHandler) ListContents(w http.ResponseWriter, r *http.Request) {
 			createdTo = &t
 		}
 	}
-	
+
 	// Parse metadata filter
 	var metadata map[string]interface{}
 	if metadataStr := query.Get("metadata"); metadataStr != "" {
@@ -307,7 +307,7 @@ func (h *ContentHandler) ListContents(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	
+
 	input := service.ListContentInput{
 		ContentType: contentType,
 		MinSize:     minSize,
@@ -318,13 +318,13 @@ func (h *ContentHandler) ListContents(w http.ResponseWriter, r *http.Request) {
 		Page:        page,
 		PageSize:    pageSize,
 	}
-	
+
 	result, err := h.contentService.ListContent(r.Context(), input)
 	if err != nil {
 		errorResponse(w, http.StatusInternalServerError, "Failed to list content")
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)
 }

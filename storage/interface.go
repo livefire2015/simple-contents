@@ -3,20 +3,22 @@ package storage
 import (
 	"context"
 	"io"
+	"net/url"
+	"simple-contents/model" // Assuming your model package path
 	"time"
 )
 
-// StorageService defines the interface for content storage operations
+// PresignedURLOptions provides options for generating presigned URLs.
+type PresignedURLOptions struct {
+	Expiry time.Duration
+	// Add other options like content type for upload URLs if needed
+}
+
+// StorageService defines the interface for file storage operations.
 type StorageService interface {
-	// Store saves content data to storage and returns the path
-	Store(ctx context.Context, key string, data io.Reader, size int64, contentType string) (string, error)
-
-	// Retrieve gets content data from storage
-	Retrieve(ctx context.Context, path string) (io.ReadCloser, error)
-
-	// Delete removes content data from storage
-	Delete(ctx context.Context, path string) error
-
-	// GetURL returns a URL for accessing the content (may be signed/temporary)
-	GetURL(ctx context.Context, path string, expiry time.Duration) (string, error)
+	Upload(ctx context.Context, content *model.Content, reader io.Reader) (storagePath string, err error)
+	Download(ctx context.Context, storagePath string) (io.ReadCloser, error)
+	GetPresignedUploadURL(ctx context.Context, contentID string, fileName string, mimeType string, options PresignedURLOptions) (url *url.URL, additionalHeaders map[string]string, err error)
+	GetPresignedDownloadURL(ctx context.Context, storagePath string, fileName string, options PresignedURLOptions) (url *url.URL, err error)
+	Delete(ctx context.Context, storagePath string) error
 }
